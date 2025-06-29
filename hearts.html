@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Волшебное сердечко ❤️</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 600px;
+            border: 2px solid #FF69B4;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        #heartCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .title {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #FF69B4;
+            font-size: 32px;
+            text-shadow: 0 0 10px rgba(255, 20, 147, 0.7);
+            z-index: 10;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        button {
+            background: linear-gradient(45deg, #FF1493, #FF69B4);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 20, 147, 0.8);
+        }
+
+        .hearts-count {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #FF82AB;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">Кликай на сердечки ❤️</div>
+        <canvas id="heartCanvas"></canvas>
+        <div class="hearts-count">Сердечек: <span id="count">0</span></div>
+        <div class="controls">
+            <button id="colorBtn">Сменить цвет всех сердечек</button>
+            <button id="fullscreenBtn">Полный экран</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorBtn = document.getElementById('colorBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const countElement = document.getElementById('count');
+
+        // Установка размеров canvas
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Функция генерации случайного цвета радуги
+        function getRandomRainbowColor() {
+            const hue = Math.floor(Math.random() * 360);
+            return `hsl(${hue}, 100%, 65%)`;
+        }
+
+        let hearts = [];
+        let heartsCount = 0;
+
+        // Класс для сердечка
+        class Heart {
+            constructor(x, y, isMain = false) {
+                this.x = x;
+                this.y = y;
+                this.size = isMain ? 40 : Math.random() * 20 + 10;
+                this.color = getRandomRainbowColor();
+                this.speedY = isMain ? 0 : Math.random() * 3 + 1;
+                this.rotation = 0;
+                this.rotationSpeed = Math.random() * 0.05 - 0.025;
+                this.isMain = isMain;
+
+                if (!isMain) heartsCount++;
+            }
+
+            update() {
+                if (!this.isMain) {
+                    this.y += this.speedY;
+                    this.rotation += this.rotationSpeed;
+
+                    // Перемещаем сердечко наверх, если оно ушло за экран
+                    if (this.y > canvas.height + 100) {
+                        this.y = -100;
+                        this.x = Math.random() * canvas.width;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                ctx.beginPath();
+                for (let t = 0; t < 2 * Math.PI; t += 0.01) {
+                    const x = 16 * Math.pow(Math.sin(t), 3);
+                    const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+                    ctx.lineTo(x * this.size/16, y * this.size/16);
+                }
+                ctx.closePath();
+
+                // Создаем градиент
+                const gradient = ctx.createRadialGradient(0, 0, this.size/4, 0, 0, this.size/2);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                gradient.addColorStop(1, this.color);
+
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                // Обводка
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // Новый метод для смены цвета
+            changeColor() {
+                this.color = getRandomRainbowColor();
+            }
+        }
+
+        // Создаем главное сердечко
+        const mainHeart = new Heart(canvas.width/2, canvas.height/2, true);
+        hearts.push(mainHeart);
+
+        // Создаем начальные сердечки
+        function createInitialHearts() {
+            for (let i = 0; i < 15; i++) {
+                hearts.push(new Heart(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                ));
+            }
+            updateCount();
+        }
+
+        // Анимация
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Рисуем звездный фон
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Обновляем и рисуем все сердечки
+            for (let heart of hearts) {
+                heart.update();
+                heart.draw();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Обработка клика
+        canvas.addEventListener('click', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Создаем новые сердечки при клике
+            for (let i = 0; i < 3; i++) {
+                hearts.push(new Heart(x, y));
+            }
+
+            updateCount();
+
+            // Анимация главного сердечка
+            mainHeart.size = 45;
+            setTimeout(() => {
+                mainHeart.size = 40;
+            }, 200);
+        });
+
+        // Смена цвета ВСЕХ сердечек
+        colorBtn.addEventListener('click', function() {
+            for (let heart of hearts) {
+                heart.changeColor();
+            }
+
+            // Анимация кнопки
+            this.style.background = `linear-gradient(45deg, ${getRandomRainbowColor()}, ${getRandomRainbowColor()})`;
+        });
+
+        // Полноэкранный режим
+        fullscreenBtn.addEventListener('click', function() {
+            const container = document.querySelector('.container');
+
+            if (!document.fullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // Обновление счетчика
+        function updateCount() {
+            countElement.textContent = heartsCount;
+        }
+
+        // Запуск анимации
+        createInitialHearts();
+        animate();
+    </script>
+</body>
+</html>
