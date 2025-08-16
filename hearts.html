@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Волшебное сердечко ❤️</title>
+    <title>Сердечки для сестрёнки ❤️</title>
     <style>
         * {
             margin: 0;
@@ -49,6 +49,24 @@
             z-index: 10;
         }
 
+        .message {
+            position: absolute;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #FF82AB;
+            font-size: 18px;
+            z-index: 10;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
         .controls {
             position: absolute;
             bottom: 20px;
@@ -92,11 +110,12 @@
 </head>
 <body>
     <div class="container">
-        <div class="title">Кликай на сердечки ❤️</div>
+        <div class="title">Для моей сестрёнки ❤️</div>
+        <div class="message">Кликай, чтобы отправить мне сердечки!</div>
         <canvas id="heartCanvas"></canvas>
         <div class="hearts-count">Сердечек: <span id="count">0</span></div>
         <div class="controls">
-            <button id="colorBtn">Сменить цвет всех сердечек</button>
+            <button id="colorBtn">Сменить цвет</button>
             <button id="fullscreenBtn">Полный экран</button>
         </div>
     </div>
@@ -125,6 +144,18 @@
 
         let hearts = [];
         let heartsCount = 0;
+        const messages = [
+            "Я тебя люблю, сестрёнка!",
+            "Ты самая лучшая сестра!",
+            "Спасибо, что ты есть!",
+            "Для тебя, родная!",
+            "Моя любимая сестра!",
+            "Ты - мое счастье!",
+            "Спасибо за всё!",
+            "Ты - ангел!",
+            "Обнимаю крепко-крепко!",
+            "Целую в макушку!"
+        ];
 
         // Класс для сердечка
         class Heart {
@@ -137,6 +168,8 @@
                 this.rotation = 0;
                 this.rotationSpeed = Math.random() * 0.05 - 0.025;
                 this.isMain = isMain;
+                this.message = isMain ? "" : messages[Math.floor(Math.random() * messages.length)];
+                this.messageOpacity = 0;
 
                 if (!isMain) heartsCount++;
             }
@@ -145,11 +178,18 @@
                 if (!this.isMain) {
                     this.y += this.speedY;
                     this.rotation += this.rotationSpeed;
+                    
+                    // Постепенно показываем сообщение
+                    if (this.y > 50 && this.messageOpacity < 1) {
+                        this.messageOpacity += 0.01;
+                    }
 
                     // Перемещаем сердечко наверх, если оно ушло за экран
                     if (this.y > canvas.height + 100) {
                         this.y = -100;
                         this.x = Math.random() * canvas.width;
+                        this.message = messages[Math.floor(Math.random() * messages.length)];
+                        this.messageOpacity = 0;
                     }
                 }
             }
@@ -159,6 +199,7 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.rotation);
 
+                // Рисуем сердечко
                 ctx.beginPath();
                 for (let t = 0; t < 2 * Math.PI; t += 0.01) {
                     const x = 16 * Math.pow(Math.sin(t), 3);
@@ -180,10 +221,20 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
+                // Рисуем сообщение
+                if (this.message && !this.isMain) {
+                    ctx.restore();
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.font = `${Math.max(12, this.size/2)}px Arial`;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.messageOpacity})`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.message, 0, -this.size - 5);
+                }
+
                 ctx.restore();
             }
 
-            // Новый метод для смены цвета
             changeColor() {
                 this.color = getRandomRainbowColor();
             }
